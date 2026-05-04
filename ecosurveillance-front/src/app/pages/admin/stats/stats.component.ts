@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
@@ -16,14 +16,16 @@ Chart.register(...registerables);
   styleUrls: ['./stats.component.css']
 })
 export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
+
+  @ViewChild('barChartRef') barChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('lineChartRef') lineChartRef!: ElementRef<HTMLCanvasElement>;
+
   barChart: any;
   lineChart: any;
   currentUser: any = null;
-
-  // MODIFICATION : période par défaut → 2M
   selectedPeriod: string = '2M';
+  viewReady = false;
 
-  // Périodes disponibles affichées dans le template
   periods = [
     { value: '1M', label: '1 Mois' },
     { value: '2M', label: '2 Mois' },
@@ -34,6 +36,7 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
   private dataSubscription?: Subscription;
   private statusData: any = null;
   private evolutionData: any[] = [];
+  private dataReady = false;
 
   constructor(
     private dashboardService: DashboardService,
@@ -48,8 +51,9 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    if (this.statusData) {
-      this.renderAllCharts();
+    this.viewReady = true;
+    if (this.dataReady) {
+      this.renderCharts();
     }
   }
 
@@ -58,9 +62,9 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroyCharts();
   }
 
-  // ─── Chargement des données ───────────────────────────────────────────────
-
   loadStats(): void {
+    if (this.dataSubscription) this.dataSubscription.unsubscribe();
+
     this.dataSubscription = forkJoin({
       status: this.dashboardService.getInfractionsByStatus(),
       evolution: this.dashboardService.getInfractionsEvolution(this.selectedPeriod)
@@ -68,33 +72,35 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
       next: ({ status, evolution }) => {
         this.statusData = status;
         this.evolutionData = evolution;
+        this.dataReady = true;
+
         console.log('Evolution RAW:', JSON.stringify(evolution));
-        this.cdr.detectChanges();
-        this.renderAllCharts();
+
+        if (this.viewReady) {
+          this.renderCharts();
+        }
       },
       error: (err) => console.error('Erreur API :', err)
     });
   }
 
-  // Appelé depuis le HTML : (click)="changePeriod('2M')"
   changePeriod(period: string): void {
     this.selectedPeriod = period;
     this.loadStats();
   }
 
-  // ─── Rendu des graphiques ─────────────────────────────────────────────────
-
-  private renderAllCharts(): void {
+  private renderCharts(): void {
+    this.destroyCharts();
     setTimeout(() => {
       this.initBarChart();
       this.initLineChart();
-    }, 100);
+    }, 200);
   }
 
   private initBarChart(): void {
-    const canvas = document.getElementById('barChart') as HTMLCanvasElement;
+    const canvas = this.barChartRef?.nativeElement
+      ?? document.getElementById('barChart') as HTMLCanvasElement;
     if (!canvas) return;
-    if (this.barChart) this.barChart.destroy();
 
     this.barChart = new Chart(canvas, {
       type: 'bar',
@@ -107,7 +113,7 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
             this.statusData?.terminee   ?? 0,
             this.statusData?.en_cours   ?? 0
           ],
-          backgroundColor: ['#4285F4', '#0F9D58', '#f59e0b'],
+          backgroundColor: ['#ef4444', '#0F9D58', '#f59e0b'],
           borderRadius: 8
         }]
       },
@@ -121,22 +127,35 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initLineChart(): void {
-    const canvas = document.getElementById('lineChart') as HTMLCanvasElement;
+    const canvas = this.lineChartRef?.nativeElement
+      ?? document.getElementById('lineChart') as HTMLCanvasElement;
     if (!canvas) return;
-    if (this.lineChart) this.lineChart.destroy();
 
-    // Clés exactes du backend → "periode" et "total"
-    const labels = this.evolutionData.map((item: any) =>
-      item.periode ?? item.date ?? item.label ?? item.mois ?? ''
-    );
-    const values = this.evolutionData.map((item: any) =>
-      Number(item.total ?? item.count ?? item.value ?? 0)
-    );
+    const labels = this.evolutionData.map((d: any) => String(d.periode ?? ''));
+    const values = this.evolutionData.map((d: any) => Number(d.total ?? 0));
+
+    // Pour 1M : dates journalières → on abrège le label (ex: "2026-03-27" → "27/03")
+    const isDaily = this.selectedPeriod === '1M' || this.selectedPeriod === '2M';
+    const displayLabels = isDaily
+      ? labels.map(l => {
+          const parts = l.split('-');
+          return parts.length === 3 ? `${parts[2]}/${parts[1]}` : l;
+        })
+      : labels.map(l => {
+          // Pour 3M/6M : "2026-03" → "Mars 26"
+          const parts = l.split('-');
+          if (parts.length === 2) {
+            const mois = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+            const m = parseInt(parts[1], 10) - 1;
+            return `${mois[m]} ${parts[0].slice(2)}`;
+          }
+          return l;
+        });
 
     this.lineChart = new Chart(canvas, {
       type: 'line',
       data: {
-        labels,
+        labels: displayLabels,
         datasets: [{
           label: 'Évolution des infractions',
           data: values,
@@ -144,7 +163,7 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
           backgroundColor: 'rgba(66, 133, 244, 0.1)',
           tension: 0.4,
           fill: true,
-          pointRadius: 4,
+          pointRadius: isDaily ? 2 : 4,  // points plus petits pour 30+ jours
           pointBackgroundColor: '#4285F4'
         }]
       },
@@ -153,15 +172,22 @@ export class StatsComponent implements OnInit, AfterViewInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 } }
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+          x: {
+            ticks: {
+              maxRotation: isDaily ? 45 : 0,  // rotation pour éviter chevauchement
+              autoSkip: true,
+              maxTicksLimit: isDaily ? 15 : 6  // limite labels affichés
+            }
+          }
         }
       }
     });
   }
 
   private destroyCharts(): void {
-    if (this.barChart) this.barChart.destroy();
-    if (this.lineChart) this.lineChart.destroy();
+    if (this.barChart)  { this.barChart.destroy();  this.barChart  = null; }
+    if (this.lineChart) { this.lineChart.destroy();  this.lineChart = null; }
   }
 
   onLogout(): void {

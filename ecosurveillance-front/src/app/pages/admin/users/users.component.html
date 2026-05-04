@@ -31,7 +31,6 @@
             <p class="user-name">{{ adminUser?.nom }}</p>
           </div>
         </div>
-
         <button class="logout-btn" (click)="onLogout()">
           <i class="fas fa-sign-out-alt"></i>
           <span>Déconnexion</span>
@@ -59,16 +58,22 @@
           <tr>
             <th>Etudiant</th>
             <th>Email</th>
-            <th>Date infration</th>
-            <th>Punition</th>
+            <th>Nombre d'infractions</th>
+            <th>Date dernière infraction</th>
+            <th>Dernière punition</th>
           </tr>
           </thead>
           <tbody>
           <tr *ngFor="let u of users">
             <td>{{ u.prenom }} {{ u.nom }}</td>
             <td>{{ u.email }}</td>
-            <td>{{ u.createdAt | date:'dd/MM/yy' }}</td>
-            <td>-</td>
+            <td>{{ u.infractions ?? 0 }}</td>
+            <td>
+              {{ u.derniereInfractionDate
+              ? (u.derniereInfractionDate | date:'dd/MM/yy')
+              : '-' }}
+            </td>
+            <td>{{ u.dernierePunition ?? '-' }}</td>
           </tr>
           </tbody>
         </table>

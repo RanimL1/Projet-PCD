@@ -1,5 +1,5 @@
 package com.ecosurveillance.repository;
-
+import org.springframework.data.repository.query.Param;
 import com.ecosurveillance.entity.Infraction;
 import com.ecosurveillance.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,12 +15,15 @@ public interface InfractionRepository extends JpaRepository<Infraction, Long> {
 
     List<Infraction> findByEtudiant(User etudiant);
     long countByInfractionDateAfter(LocalDateTime date);
-    List<Infraction> findByEtudiantAndInfractionDateAfter(User etudiant, LocalDateTime date);
-    List<Infraction> findByStatus(StatusInfraction status);
+    List<Infraction> findByEtudiant_IdOrderByInfractionDateDesc(Long etudiantId);    List<Infraction> findByStatus(StatusInfraction status);
 
     long countBy();
     @Query("SELECT i.status, COUNT(i) FROM Infraction i GROUP BY i.status")
     List<Object[]> countByStatus();
+
+
+    @Query("SELECT i FROM Infraction i WHERE i.etudiant.id = :etudiantId ORDER BY i.infractionDate DESC")
+    List<Infraction> findByEtudiantIdOrderByDateDesc(@Param("etudiantId") Long etudiantId);
 
     @Query("""
     SELECT 

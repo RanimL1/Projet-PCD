@@ -30,7 +30,7 @@ export class DashboardService {
     return new HttpHeaders({ Authorization: `Bearer ${token}` });
   }
 
-  // ─── Stats principales ────────────────────────────────────────────────────
+  // GET /api/dashboard/admin/stats
   getDashboardStats(): Observable<DashboardStatsDTO> {
     return this.http.get<DashboardStatsDTO>(
       `${this.apiUrl}/admin/stats`,
@@ -38,20 +38,7 @@ export class DashboardService {
     );
   }
 
-  // ─── Évolution ─────────────────────────────────────────────────────────────
-  // CORRECTION : /stats/evolution → /evolution (URL exacte du backend)
-  getEvolution(period: string = '6M'): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.apiUrl}/evolution?period=${period}`,
-      { headers: this.getAuthHeaders() }
-    );
-  }
-
-  getInfractionsEvolution(period: string = '6M'): Observable<any[]> {
-    return this.getEvolution(period);
-  }
-
-  // ─── Répartition par statut ───────────────────────────────────────────────
+  // GET /api/dashboard/stats/status
   getStatsByStatus(): Observable<{ [key: string]: number }> {
     return this.http.get<{ [key: string]: number }>(
       `${this.apiUrl}/stats/status`,
@@ -61,5 +48,18 @@ export class DashboardService {
 
   getInfractionsByStatus(): Observable<{ [key: string]: number }> {
     return this.getStatsByStatus();
+  }
+
+  // GET /api/dashboard/evolution?period=2M
+  // CORRECTION : /stats/evolution → /evolution (URL exacte du controller Java)
+  getEvolution(period: string = '6M'): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.apiUrl}/evolution?period=${period}`,
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
+  getInfractionsEvolution(period: string = '6M'): Observable<any[]> {
+    return this.getEvolution(period);
   }
 }

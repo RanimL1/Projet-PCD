@@ -76,4 +76,11 @@ public class InfractionController {
     public ResponseEntity<List<InfractionDTO>> getInfractionsByStatus(@PathVariable StatusInfraction status) {
         return ResponseEntity.ok(infractionService.getInfractionsByStatus(status));
     }
+    // Ajouter dans InfractionController.java
+
+    // Valider une punition (passe infraction + punition à TERMINEE)
+    @PatchMapping("/{id}/valider")
+    public ResponseEntity<InfractionDTO> validerPunition(@PathVariable Long id) {
+        return ResponseEntity.ok(infractionService.validerPunition(id));
+    }
 }

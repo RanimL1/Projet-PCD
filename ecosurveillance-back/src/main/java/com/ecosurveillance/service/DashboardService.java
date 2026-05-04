@@ -5,13 +5,11 @@ import com.ecosurveillance.dto.EtudiantListDTO;
 import com.ecosurveillance.entity.Infraction;
 import com.ecosurveillance.entity.PunitionAssignee;
 import com.ecosurveillance.enums.Role;
-import com.ecosurveillance.enums.StatusInfraction;
 import com.ecosurveillance.repository.CameraRepository;
 import com.ecosurveillance.repository.InfractionRepository;
 import com.ecosurveillance.repository.PunitionAssigneeRepository;
 import com.ecosurveillance.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,8 +18,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -59,19 +57,29 @@ public class DashboardService {
                 .map(etudiant -> {
                     EtudiantListDTO dto = new EtudiantListDTO();
                     dto.setNom(etudiant.getNom());
+                    dto.setPrenom(etudiant.getPrenom());
                     dto.setEmail(etudiant.getEmail());
 
-                    List<Infraction> infractions = infractionRepository.findByEtudiant(etudiant);
+                    // CORRECTION : méthode dérivée Spring Data avec underscore
+                    // traverse la relation etudiant → id correctement
+                    List<Infraction> infractions = infractionRepository
+                            .findByEtudiant_IdOrderByInfractionDateDesc(etudiant.getId());
+
+                    System.out.println("Etudiant ID: " + etudiant.getId() +
+                            " | Infractions trouvées: " + infractions.size());
+
                     dto.setInfractions((long) infractions.size());
 
-                    infractions.stream().findFirst().ifPresent(firstInfraction -> {
-                        PunitionAssignee punition = punitionAssigneeRepository
-                                .findByInfraction(firstInfraction)
-                                .orElse(null);
-                        if (punition != null) {
-                            dto.setDernierePunition(punition.getPunition().getDescription());
-                        }
-                    });
+                    if (!infractions.isEmpty()) {
+                        Infraction derniere = infractions.get(0);
+                        dto.setDerniereInfractionDate(derniere.getInfractionDate());
+
+                        punitionAssigneeRepository
+                                .findByInfraction(derniere)
+                                .ifPresent(p -> dto.setDernierePunition(
+                                        p.getPunition().getDescription()
+                                ));
+                    }
 
                     return dto;
                 })
@@ -104,24 +112,20 @@ public class DashboardService {
         switch (period) {
             case "1M":
                 startDate = LocalDateTime.now().minusMonths(1);
-                isDaily = true;   // granularité jour
+                isDaily = true;
                 break;
-
             case "2M":
-                // AJOUT : 2 mois, granularité journalière
                 startDate = LocalDateTime.now().minusMonths(2);
                 isDaily = true;
                 break;
-
             case "3M":
                 startDate = LocalDateTime.now().minusMonths(3);
-                isDaily = false;  // granularité mois
+                isDaily = false;
                 break;
-
             case "6M":
             default:
                 startDate = LocalDateTime.now().minusMonths(6);
-                isDaily = false;  // granularité mois
+                isDaily = false;
                 break;
         }
 

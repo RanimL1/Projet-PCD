@@ -22,7 +22,7 @@
         <div class="user-profile">
           <img src="assets/user.png" alt="User" class="avatar-img">
           <div class="user-text">
-            <p class="user-name">{{ user.nom }}</p>
+            <p class="user-name">{{ user?.nom }}</p>
             <p class="user-role">Etudiant</p>
           </div>
         </div>
@@ -40,7 +40,7 @@
       <div class="user-profile">
         <img src="assets/user.png" alt="User" class="avatar-img">
         <div class="user-text">
-          <p class="user-name">{{ user.nom }}</p>
+          <p class="user-name">{{ user?.nom }}</p>
           <p class="user-role">Etudiant</p>
         </div>
       </div>
@@ -60,7 +60,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr *ngFor="let infraction of infractions">
+          <tr *ngFor="let infraction of paginatedInfractions">
             <td>{{ infraction.id }}</td>
             <td>
               <button class="btn-view" (click)="openProofs(infraction.id)">
@@ -68,13 +68,13 @@
               </button>
             </td>
             <td>{{ infraction.date | date:'dd/MM/yy' }}</td>
-            <td><strong>{{ infraction.punitionDescription }}</strong></td>
+            <td><strong>{{ infraction.punitionDescription || '-' }}</strong></td>
             <td>
                 <span class="status-badge"
                       [ngClass]="{
                         'completed': infraction.status === 'TERMINEE',
                         'processing': infraction.status === 'EN_COURS',
-                        'waiting': infraction.status === 'EN_ATTENTE',
+                        'waiting': infraction.status === 'EN_ATTENTE'
                       }">
                   {{ infraction.status }}
                 </span>
@@ -89,8 +89,32 @@
               </button>
             </td>
           </tr>
+          <tr *ngIf="infractions.length === 0 && !loading">
+            <td colspan="6" class="no-data">Vous n'avez aucune infraction.</td>
+          </tr>
           </tbody>
         </table>
+
+        <div class="pagination" *ngIf="totalPages > 1">
+          <button class="page-btn"
+                  [disabled]="currentPage === 1"
+                  (click)="goToPage(currentPage - 1)">‹</button>
+
+          <button *ngFor="let page of pages"
+                  class="page-btn"
+                  [class.active]="page === currentPage"
+                  (click)="goToPage(page)">
+            {{ page }}
+          </button>
+
+          <button class="page-btn"
+                  [disabled]="currentPage === totalPages"
+                  (click)="goToPage(currentPage + 1)">›</button>
+
+          <span class="page-info">
+            {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, infractions.length) }} sur {{ infractions.length }}
+          </span>
+        </div>
       </div>
     </section>
   </main>

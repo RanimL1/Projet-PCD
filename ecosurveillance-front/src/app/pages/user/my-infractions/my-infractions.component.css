@@ -261,3 +261,64 @@ app-proof-viewer {
   text-decoration: line-through;
   opacity: 0.6;
 }
+/* ... Vos styles existants pour le layout, sidebar, table ... */
+
+/* --- Styles spécifiques à la pagination --- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 15px;
+  background: #fff;
+  border-top: 1px solid #edf2f7;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  color: #4a5568;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not([disabled]) {
+  border-color: #3182ce;
+  color: #3182ce;
+  background-color: #ebf8ff;
+}
+
+.page-btn.active {
+  background-color: #1a3a6d; /* Bleu foncé de votre charte */
+  color: white;
+  border-color: #1a3a6d;
+}
+
+.page-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  margin-left: 12px;
+  font-size: 13px;
+  color: #718096;
+}
+
+
+.disabled-btn {
+  background-color: #e9ecef !important;
+  color: #adb5bd !important;
+  border-color: #dee2e6 !important;
+  cursor: not-allowed !important;
+}

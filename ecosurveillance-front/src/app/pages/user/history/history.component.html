@@ -100,7 +100,8 @@
                 Voir preuve
               </button>
             </td>
-            <td>{{ infraction.infractionDate ? (infraction.infractionDate | date:'dd/MM/yy') : '-' }}</td>            <td>{{ infraction.punition || '-' }}</td>
+            <td>{{ infraction.infractionDate ? (infraction.infractionDate | date:'dd/MM/yy') : '-' }}</td>
+            <td>{{ infraction.punitionDescription || '-' }}</td>
             <td>
                 <span class="status-badge" [ngClass]="{
   'completed': infraction.status === 'TERMINEE',

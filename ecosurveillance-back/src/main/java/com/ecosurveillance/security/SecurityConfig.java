@@ -43,19 +43,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
-                        // ─── Routes publiques ──────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/preuves/media/**").permitAll()
                         .requestMatchers("/h2-console/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-
-                        // ─── Dashboard : ADMIN uniquement ──────────────────
-                        // CORRECTION : route explicitement déclarée avec rôle
                         .requestMatchers("/api/dashboard/**").hasRole("ADMIN")
-
-                        // ─── Infractions : ADMIN + ETUDIANT ───────────────
                         .requestMatchers("/api/infractions/**").hasAnyRole("ADMIN", "ETUDIANT")
-
-                        // ─── Tout le reste : authentifié ───────────────────
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
@@ -107,14 +99,25 @@ public class SecurityConfig {
 
             String authHeader = request.getHeader("Authorization");
 
+            // ─── LOGS TEMPORAIRES DE DIAGNOSTIC ──────────────────────────
+            System.out.println("=== JWT FILTER ===");
+            System.out.println("URL: " + request.getRequestURI());
+            System.out.println("Method: " + request.getMethod());
+            System.out.println("Authorization header: " + authHeader);
+            // ─────────────────────────────────────────────────────────────
+
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
+                boolean valid = jwtTokenProvider.validateToken(token);
 
-                if (jwtTokenProvider.validateToken(token)) {
+                System.out.println("Token valide: " + valid); // ← LOG
+
+                if (valid) {
                     String email = jwtTokenProvider.getEmailFromToken(token);
                     String role  = jwtTokenProvider.getRoleFromToken(token);
 
-                    // Spring attend "ROLE_ADMIN" pour .hasRole("ADMIN")
+                    System.out.println("Email: " + email + " | Role: " + role); // ← LOG
+
                     SimpleGrantedAuthority authority =
                             new SimpleGrantedAuthority("ROLE_" + role);
 
@@ -123,6 +126,8 @@ public class SecurityConfig {
 
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
+            } else {
+                System.out.println("Pas de header Authorization ou format incorrect"); // ← LOG
             }
 
             filterChain.doFilter(request, response);

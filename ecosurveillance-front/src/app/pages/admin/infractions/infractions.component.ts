@@ -4,12 +4,12 @@ import { RouterModule, Router } from '@angular/router';
 import { InfractionService } from '../../../services/infraction.service';
 import { InfractionTableComponent } from '../../../components/infraction-table/infraction-table.component';
 import { AuthService } from '../../../services/auth.service';
-import { ProofViewerComponent } from '../../../components/proof-viewer/proof-viewer.component'; // ✅
+import { ProofViewerComponent } from '../../../components/proof-viewer/proof-viewer.component';
 
 @Component({
   selector: 'app-infractions',
   standalone: true,
-  imports: [CommonModule, RouterModule, InfractionTableComponent, ProofViewerComponent], // ✅
+  imports: [CommonModule, RouterModule, InfractionTableComponent, ProofViewerComponent],
   templateUrl: './infractions.component.html',
   styleUrls: ['./infractions.component.css']
 })
@@ -18,8 +18,6 @@ export class InfractionsComponent implements OnInit {
   loading = true;
   error: string | null = null;
   currentUser: any = null;
-
-  // ✅ AJOUT
   selectedInfractionId: number | null = null;
 
   get showModal(): boolean {
@@ -37,7 +35,7 @@ export class InfractionsComponent implements OnInit {
     this.loadInfractions();
   }
 
-  loadInfractions() {
+  loadInfractions(): void {
     this.loading = true;
     this.error = null;
     this.infractionService.getInfractions().subscribe({
@@ -53,11 +51,11 @@ export class InfractionsComponent implements OnInit {
     });
   }
 
-  editInfraction(infraction: any) {
+  editInfraction(infraction: any): void {
     console.log('Edit', infraction);
   }
 
-  deleteInfraction(id: number) {
+  deleteInfraction(id: number): void {
     if (confirm('Supprimer cette infraction ?')) {
       this.infractionService.deleteInfraction(id).subscribe(() => {
         this.infractions = this.infractions.filter(i => i.id !== id);
@@ -65,21 +63,19 @@ export class InfractionsComponent implements OnInit {
     }
   }
 
-  onChangeStatus(id: number) {
-    this.infractionService.changerStatut(id, 'TERMINEE').subscribe({
+  onChangeStatus(id: number): void {
+    this.infractionService.validerPunition(id).subscribe({
       next: () => {
-        this.infractions = this.infractions.map(i =>
-          i.id === id ? { ...i, status: 'TERMINEE' } : i
-        );
+        // CORRECTION : recharger depuis le serveur pour avoir punitionDescription à jour
+        this.loadInfractions();
       },
       error: (err) => {
         console.error(err);
-        this.error = 'Impossible de changer le statut';
+        this.error = 'Impossible de valider la punition';
       }
     });
   }
 
-  // ✅ AJOUT
   openProofs(id: number): void {
     this.selectedInfractionId = id;
   }

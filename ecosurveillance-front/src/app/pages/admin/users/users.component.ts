@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router'; // 1. Ajout de Router ici
-import { UserService } from '../../../services/user.service';
-import { AuthService } from '../../../services/auth.service'; 
+import { RouterModule, Router } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { AuthService } from '../../../services/auth.service';
+
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -13,11 +14,10 @@ import { AuthService } from '../../../services/auth.service';
 export class UsersComponent implements OnInit {
 
   users: any[] = [];
-  selectedUser: any = null;
   adminUser: any = null;
 
   constructor(
-    private userService: UserService,
+    private http: HttpClient,
     private router: Router,
     private authService: AuthService
   ) {}
@@ -27,45 +27,21 @@ export class UsersComponent implements OnInit {
     this.loadUsers();
   }
 
-  /**
-   * Logique de déconnexion
-   */
+  loadUsers(): void {
+    const token = this.authService.getToken() ?? '';
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    this.http.get<any[]>('http://localhost:8081/api/dashboard/admin/etudiants', { headers })
+      .subscribe({
+        next: (res) => this.users = res,
+        error: (err) => console.error('Erreur chargement étudiants', err)
+      });
+  }
+
   onLogout(): void {
-    // Nettoyage des données de session
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.clear();
-
-    // Redirection vers la page de connexion
     this.router.navigate(['/login']);
-  }
-
-  loadUsers() {
-    this.userService.getUsers().subscribe((res: any[]) => {
-      this.users = res.filter(u => u.role === 'ETUDIANT');
-    });
-  }
-
-  addUser() {
-    this.selectedUser = null;
-    // Logique pour ouvrir un formulaire d'ajout ici
-  }
-
-  editUser(user: any) {
-    this.selectedUser = { ...user };
-    // Logique pour ouvrir un formulaire d'édition ici
-  }
-
-  deleteUser(userId: number) {
-    if (confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) {
-      this.userService.deleteUser(userId).subscribe(() => {
-        this.users = this.users.filter(u => u.id !== userId);
-      });
-    }
-  }
-
-  onFormSaved() {
-    this.selectedUser = null;
-    this.loadUsers();
   }
 }

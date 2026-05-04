@@ -1,6 +1,7 @@
 package com.ecosurveillance.dto;
 
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Data
 public class EtudiantListDTO {
@@ -9,4 +10,6 @@ public class EtudiantListDTO {
     private String email;
     private Long infractions;
     private String dernierePunition;
+    // AJOUT : date de la dernière infraction
+    private LocalDateTime derniereInfractionDate;
 }

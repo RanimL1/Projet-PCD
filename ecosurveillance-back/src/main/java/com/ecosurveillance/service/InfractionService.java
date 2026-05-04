@@ -182,6 +182,44 @@ public class InfractionService {
     //     return dto;
 
     // }
+    // Remplacer la méthode validerPunition dans InfractionService.java
+
+    @Transactional
+    public InfractionDTO validerPunition(Long infractionId) {
+
+        Infraction infraction = infractionRepository.findById(infractionId)
+                .orElseThrow(() -> new RuntimeException("Infraction non trouvée"));
+
+        // 1. Passer l'infraction à TERMINEE
+        infraction.setStatus(StatusInfraction.TERMINEE);
+        infractionRepository.save(infraction);
+
+        // 2. Passer la punition à TERMINEE si elle existe
+        // CORRECTION : orElse(null) au lieu de orElseThrow
+        PunitionAssignee punition = punitionAssigneeRepository
+                .findByInfraction(infraction)
+                .orElse(null);
+
+        if (punition != null) {
+            // Punition existante → la terminer
+            punition.setStatut("TERMINEE");
+            punitionAssigneeRepository.save(punition);
+        } else {
+            // Pas de punition assignée → en créer une automatiquement
+            List<PunitionEcologique> punitions = punitionEcologiqueRepository.findAll();
+            if (!punitions.isEmpty()) {
+                PunitionEcologique randomPunition =
+                        punitions.get((int) (Math.random() * punitions.size()));
+                PunitionAssignee newPunition = new PunitionAssignee();
+                newPunition.setInfraction(infraction);
+                newPunition.setPunition(randomPunition);
+                newPunition.setStatut("TERMINEE");
+                punitionAssigneeRepository.save(newPunition);
+            }
+        }
+
+        return mapToDTO(infraction);
+    }
 
     private InfractionDTO mapToDTO(Infraction infraction) {
  
